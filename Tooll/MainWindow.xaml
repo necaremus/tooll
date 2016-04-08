@@ -144,11 +144,13 @@
                     <MenuItem Header="Toggle Mute Audio"  Command="{x:Static local:CustomCommands.ToggleAudioVolumeCommand}" />
                     <MenuItem Header="Connect Remote Client"  Command="{x:Static local:CustomCommands.ConnectRemoteClientCommand}" />
                 </MenuItem>
-                <MenuItem Header="_Views">
+                <MenuItem Header="_View">
                     <MenuItem Header="New SelectionView" Click="NewPanelHandler" />
                     <MenuItem Header="Parameter View" Click="ShowParameterViewHandler"/>
                     <MenuItem Header="Show Library" Click="ShowLibraryHandler" />
                     <MenuItem Header="Measure View" Click="ShowMeasureViewHandler"/>
+                    <MenuItem Header="ColorPicker View" Click="ShowColorPickerViewHandler" />
+                    <MenuItem Header="Composition View" Click="ShowCompositionViewHandler" />
                     <MenuItem Header="Console View" Command="{x:Static local:CustomCommands.ShowConsoleViewCommand}"/>
                     <MenuItem Header="_Layout" Name="XLayoutMenuItem">
                         <MenuItem Header="Save Layout" Click="SaveLayoutHandler"/>
@@ -164,6 +166,15 @@
                     <MenuItem Header="Hide Shadow Ops" Command="{x:Static local:CustomCommands.HideShadowOpsCommand}"/>
                     <MenuItem Header="Show Undo/Redo Stacks" Click="ShowUndoRedoViewHandler"/>
                 </MenuItem>
+                <!--<MenuItem Header="_Settings">
+                    
+                </MenuItem>-->
+                <CheckBox  x:Name="XUpdateCheckbox"
+                           Foreground="Gray"
+                           Content="Update on Selection"
+                           Background="Transparent"
+                           IsChecked="True"
+                           Click="OnClickUpdateCheckbox"/>
             </Menu>
             
             <!-- Title Text -->
@@ -186,36 +197,40 @@
 
         <ad:DockingManager x:Name="dockManager" Grid.Row="2"  SnapsToDevicePixels="True" UseLayoutRounding="True">
             <ad:ResizingPanel Orientation="Horizontal">
+                <!-- no lib? -->
                 <ad:ResizingPanel Orientation="Vertical"  ad:ResizingPanel.ResizeWidth="170">
                     <ad:DocumentPane  x:Name="LibraryPane" >
                         <local:LibraryView x:Name="XLibraryView"/>
                     </ad:DocumentPane>
-                    <ad:DocumentPane  x:Name="XColorPicker" ad:ResizingPanel.ResizeHeight="200">
-                        <local:ColorPickerView x:Name="XColorPickerView"/>
-                    </ad:DocumentPane>
                 </ad:ResizingPanel>
+                <!-- -->
                 <ad:DocumentPane VerticalAlignment="Stretch" Name="CompositionPane" ad:ResizingPanel.ResizeWidth="0.5*">
                     <ad:DocumentContent Title="Composition" Name="XCompositionViewDock" >
                         <local:CompositionView x:Name="CompositionView" />
                     </ad:DocumentContent>
                 </ad:DocumentPane>
-
+                <!-- push somewhere else
                 <ad:ResizingPanel Orientation="Vertical"  >
-                    <ad:DocumentPane VerticalAlignment="Stretch"   ad:ResizingPanel.ResizeHeight="220">
-
-                        <!--<local:MessageControl x:Name="XMessageControl"/>-->
+                    <ad:DocumentPane VerticalAlignment="Stretch"   ad:ResizingPanel.ResizeHeight="220">                        
                         <console:ConsoleView x:Name="XConsoleView"/>
-
                     </ad:DocumentPane>
+                     -->
                     <ad:ResizingPanel Orientation="Horizontal">
-
-                        <ad:DocumentPane ad:ResizingPanel.ResizeWidth="290" x:Name="parameterViewPane">
-                            <ad:DocumentContent Title="Parameter" x:Name="parameterViewDock">
-                                <local:ParameterView x:Name="XParameterView"/>
-                            </ad:DocumentContent>
-                        </ad:DocumentPane>
                         <ad:ResizingPanel Orientation="Vertical"  >
-                            <ad:DocumentPane>
+                            <ad:DocumentPane  x:Name="XColorPicker" ad:ResizingPanel.ResizeHeight="200">
+                                <local:ColorPickerView x:Name="XColorPickerView"/>
+                            </ad:DocumentPane>
+                            <ad:DocumentPane ad:ResizingPanel.ResizeWidth="290" x:Name="parameterViewPane">
+                                <ad:DocumentContent Title="Parameter" x:Name="parameterViewDock">
+                                    <local:ParameterView x:Name="XParameterView"/>
+                                </ad:DocumentContent>
+                            </ad:DocumentPane>
+                        </ad:ResizingPanel>
+                        <ad:ResizingPanel Orientation="Vertical"  >
+                        <ad:DocumentPane VerticalAlignment="Stretch"   ad:ResizingPanel.ResizeHeight="220">
+                            <console:ConsoleView x:Name="XConsoleView"/>
+                        </ad:DocumentPane>
+                        <ad:DocumentPane>
                                 <ad:DocumentContent Title="Selection View" Name="XSelectionViewDock"  SnapsToDevicePixels="True" UseLayoutRounding="True">
                                     <selectionView:SelectionView x:Name="XRenderView"/>
                                 </ad:DocumentContent>
@@ -227,7 +242,7 @@
                             </ad:DocumentPane>
                         </ad:ResizingPanel>
                     </ad:ResizingPanel>
-                </ad:ResizingPanel>
+                <!--</ad:ResizingPanel>-->
             </ad:ResizingPanel>
         </ad:DockingManager>
 

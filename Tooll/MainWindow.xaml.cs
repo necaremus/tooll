@@ -44,6 +44,11 @@ using TextDataFormat = System.Windows.TextDataFormat;
 using Utilities = Framefield.Core.Utilities;
 using Constants = Framefield.Core.Constants;
 
+/* TO-DO:
+ * reorganize code, don't alter!
+ * Bug-Fix layout startUp/shutDown
+ * add missing views
+ */
 namespace Framefield.Tooll
 {
 
@@ -99,6 +104,7 @@ namespace Framefield.Tooll
 
             LoadLayouts();
             LoadBookmarks();
+            //LoadAndSetLastLayout();
         }
 
         private void MainWindow_ClosingHandler(object sender, CancelEventArgs e)
@@ -115,6 +121,11 @@ namespace Framefield.Tooll
                 if (resultOfSaveChangesDialog == MessageBoxResult.Yes)
                     App.Current.Model.Save();
             }
+            /// <!--
+            /// buggy
+            /// -->
+            /*
+            SaveLayoutOnShutDown(); //*/
         }
 
         void MainWindow_Closed(object sender, EventArgs e) {
@@ -318,23 +329,9 @@ namespace Framefield.Tooll
             Close();
         }
 
-        private void NewPanelHandler(object sender, RoutedEventArgs e) {
-            var documentContent = new DocumentContent();
-            documentContent.Title = "MyNewContent";
-            var newRenderView = new SelectionView();
-            CompositionView.CompositionGraphView.SelectionHandler.FirstSelectedChanged += newRenderView.UpdateViewToCurrentSelectionHandler;
-            if (App.Current.MainWindow.CompositionView.CompositionGraphView.SelectedElements.Count > 0) {
-                var ow = App.Current.MainWindow.CompositionView.CompositionGraphView.SelectedElements[0] as OperatorWidget;
-                newRenderView.SetOperatorWidget(ow);
-            }
-            documentContent.Content = newRenderView;
-            documentContent.Show(dockManager, true);
-        }
 
-        private void ShowLibraryHandler(object sender, RoutedEventArgs e) {
-            var libraryView = new LibraryView();
-            libraryView.Show(dockManager, true);
-        }
+
+
 
         private void ClearHandler(object sender, EventArgs args)
         {
@@ -410,13 +407,16 @@ namespace Framefield.Tooll
                 return;
 
             name = popup.XTextBox.Text;
-
+            // how does dis SaveLayout(writer); work? o.o"
             using (var writer = new StringWriter()) {
                 dockManager.SaveLayout(writer);
                 var layout = new MainWindow.Layout() { Name = name, Data = writer.ToString() };
                 AddLayout(layout);
             }
+            SaveLayouts();
+        }
 
+        private void SaveLayouts() { 
             using (var xmlWriter = new XmlTextWriter(_layoutFileName, Encoding.UTF8)) {
                 xmlWriter.Formatting = Formatting.Indented;
                 xmlWriter.WriteStartDocument();
@@ -437,11 +437,66 @@ namespace Framefield.Tooll
                 return;
 
             var doc = XDocument.Load(_layoutFileName);
+            if (doc.Element("Layouts") == null)
+                return;
+
             foreach (XElement x in doc.Element("Layouts").Elements("Layout")) {
                 var name = x.Attribute("Name").Value;
                 var data = x.Elements().First();
                 var layout = new MainWindow.Layout() { Name = name, Data = data.ToString() };
                 AddLayout(layout);
+            }
+        }
+
+        private void LoadAndSetLastLayout() {
+            if (!File.Exists(_layoutFileName))
+                return;
+
+            var doc = XDocument.Load(_layoutFileName);
+            /*
+            if (doc.Element("Last") == null)
+                return;//*/
+
+            foreach (XElement x in doc.Element("Layouts").Elements("Last")) {
+                var name = x.Attribute("Name").Value;
+                var data = x.Elements().First();
+                var fullScreen = x.Attribute("FullScreen").Value;
+                if (fullScreen != null)
+                    WindowState = fullScreen.Equals("1") ? WindowState.Maximized : WindowState.Normal;
+                var layout = new MainWindow.Layout() { Name = name, Data = data.ToString() };
+                using (var reader = new StringReader(layout.Data)) {
+                    dockManager.RestoreLayout(reader);
+                }
+            }
+        }
+
+        private void SaveLayoutOnShutDown() {
+            var name = "LastLayout"; //hardcoded, yaa :D
+            using (var writer = new StringWriter()) {
+                dockManager.SaveLayout(writer);
+                var llayout = new MainWindow.Layout() { Name = name, Data = writer.ToString() };
+                using (var xmlWriter = new XmlTextWriter(_layoutFileName, Encoding.UTF8)) {
+                    xmlWriter.Formatting = Formatting.Indented;
+                    xmlWriter.WriteStartDocument();
+                    xmlWriter.WriteStartElement("Layouts");
+                    xmlWriter.WriteStartElement("Last");
+                    xmlWriter.WriteAttributeString("Name", llayout.Name);
+                    xmlWriter.WriteAttributeString("FullScreen", //*
+                                                   (((WindowState == WindowState.Maximized)) ? 1 : 0 ).ToString()   //*/""//*//*
+                                                   );
+                    xmlWriter.WriteRaw(llayout.Data);
+                    xmlWriter.WriteEndElement();
+
+                    foreach (var layout in _layouts) {
+                        xmlWriter.WriteStartElement("Layout");
+                        xmlWriter.WriteAttributeString("Name", layout.Name);
+                        xmlWriter.WriteRaw(layout.Data);
+                        xmlWriter.WriteEndElement();
+                    }
+
+                    xmlWriter.WriteEndElement();
+                    xmlWriter.WriteEndDocument();
+                }
             }
         }
 
@@ -469,17 +524,7 @@ namespace Framefield.Tooll
             _layouts.RemoveAt(_layouts.Count - 1);
         }
 
-        private void ShowParameterViewHandler(object sender, RoutedEventArgs e) {
-            parameterViewDock.Show(dockManager, true);
-        }
 
-        private void ShowMeasureViewHandler(object sender, RoutedEventArgs e) {
-            var documentContent = new DocumentContent();
-            documentContent.Title = "MeasureView";
-            var newView = new TimeLogView();
-            documentContent.Content = newView;
-            documentContent.Show(dockManager, true);
-        }
 
         public static RoutedCommand OpenLastFileCommand = new RoutedCommand();
 
@@ -497,6 +542,7 @@ namespace Framefield.Tooll
             }
             catch
             {
+                Logger.Error("");
             }
         }
 
@@ -1324,6 +1370,7 @@ namespace Framefield.Tooll
 
         
         #region Find Operator Usages
+        // why dis? screams "BUGGY!"
         private void FindOperatorUsages_CanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
             var cgv = App.Current.MainWindow.CompositionView.CompositionGraphView;
@@ -1676,6 +1723,13 @@ namespace Framefield.Tooll
         private void MainWindow_OnLoaded(object sender, RoutedEventArgs e)
         {
             SpaceMouseHandlerWpf = new SpaceMouseWPFHandler();
+            /// <!--
+            /// buggy
+            /// this.dockManager == notLoaded
+            /// -->
+            /*
+            LoadAndSetLastLayout();
+            //*/
         }
 
         private void CutHandler(object sender, ExecutedRoutedEventArgs e)
@@ -1710,10 +1764,104 @@ namespace Framefield.Tooll
         {
             e.CanExecute = Clipboard.ContainsText(TextDataFormat.UnicodeText);
         }
+        #region main
+        #endregion
+        #region menu
+        #region _File
+        #endregion
+        #region _Edit
+        #endregion
+        #region _View
+        #region ShowDialogHandlers
+        private void NewPanelHandler(object sender, RoutedEventArgs e)
+        {
+            var documentContent = new DocumentContent();
+            documentContent.Title = "MyNewContent";
+            var newRenderView = new SelectionView();
+            CompositionView.CompositionGraphView.SelectionHandler.FirstSelectedChanged += newRenderView.UpdateViewToCurrentSelectionHandler;
+            if (App.Current.MainWindow.CompositionView.CompositionGraphView.SelectedElements.Count > 0)
+            {
+                var ow = App.Current.MainWindow.CompositionView.CompositionGraphView.SelectedElements[0] as OperatorWidget;
+                newRenderView.SetOperatorWidget(ow);
+            }
+            documentContent.Content = newRenderView;
+            documentContent.Show(dockManager, true);
+        }
 
+        private void ShowParameterViewHandler(object sender, RoutedEventArgs e)
+        {
+            parameterViewDock.Show(dockManager, true);
+        }
 
+        private void ShowLibraryHandler(object sender, RoutedEventArgs e)
+        {
+            var libraryView = new LibraryView();
+            libraryView.Show(dockManager, true);
+        }
 
+        private void ShowMeasureViewHandler(object sender, RoutedEventArgs e)
+        {
+            var documentContent = new DocumentContent();
+            documentContent.Title = "MeasureView";
+            var newView = new TimeLogView();
+            documentContent.Content = newView;
+            documentContent.Show(dockManager, true);
+        }
+        private void ShowColorPickerViewHandler(object sender, RoutedEventArgs e)
+        {
+            // if (null) {
+            var colorPickerView = new ColorPickerView();
+            colorPickerView.Show(dockManager, true);
+        }
 
+        private void ShowCompositionViewHandler(object sender, RoutedEventArgs e)
+        {
+            if (CompositionView == null)
+            {
+                CompositionView = new CompositionView();
+            }
+            else { //*
+                return; /*///*
+                CompositionView.BringIntoView();
+                //dockManager.FindName("XCompositionViewDock");
+                //dockManager.MainDocumentPane..BringIntoView();
+                //*/
+            }
+            //CompositionView.          
+        }
+        #endregion
+
+        #endregion
+
+        #endregion
+        private bool _updateOnSelection;
+        public bool UpdateOnSelection {
+            get { return _updateOnSelection; }
+            set {
+                _updateOnSelection = value;
+                XUpdateCheckbox.IsChecked = value;
+            }
+        }
+        private void OnClickUpdateCheckbox(object sender, RoutedEventArgs e) {
+            if (XUpdateCheckbox.IsChecked == true) {
+                _updateOnSelection = true;
+
+                CompositionView.CompositionGraphView.SelectionHandler.FirstSelectedChanged += XRenderView.UpdateViewToCurrentSelectionHandler;
+                CompositionView.CompositionGraphView.SelectionHandler.FirstSelectedChanged += XRenderView2.UpdateViewToCurrentSelectionHandler;
+            }
+            else {
+                _updateOnSelection = false;
+
+                CompositionView.CompositionGraphView.SelectionHandler.FirstSelectedChanged -= XRenderView.UpdateViewToCurrentSelectionHandler;
+                CompositionView.CompositionGraphView.SelectionHandler.FirstSelectedChanged -= XRenderView2.UpdateViewToCurrentSelectionHandler;
+            }            
+        }
+        /*
+        private List<ISelectable> GetSelectionViews()
+        {
+            var selectionViews = new List<ISelectable>();
+            return selectionViews;
+        }//*/
     }
 
 }
