@@ -212,9 +212,18 @@ namespace Framefield.Tooll.Components.SelectionView
             }
         }
 
+        private bool _updateViewOnSelection = true;
+        public bool UpdateViesOnSelection {
+            get { return _updateViewOnSelection; }
+            set { _updateViewOnSelection = value; }
+        }
         public void UpdateViewToCurrentSelectionHandler(object sender, SelectionHandler.FirstSelectedChangedEventArgs e)
         {
-            SetOperatorWidget(e.Element as OperatorWidget);
+            if (App.Current.MainWindow.XUpdateCheckbox.IsChecked == true)
+            {
+                if (_updateViewOnSelection)
+                    SetOperatorWidget(e.Element as OperatorWidget);
+            }
         }
 
         private void CheckBox_StickyClickedHandler(object sender, RoutedEventArgs e)
@@ -279,6 +288,17 @@ namespace Framefield.Tooll.Components.SelectionView
                 var cgv = App.Current.MainWindow.CompositionView.CompositionGraphView;
                 cgv.SelectionHandler.SetElement(_shownOperatorWidget);
                 cgv.CenterSelectedElements();
+            }
+        }
+
+        private void XUpdateCheckbox_Click(object sender, RoutedEventArgs e)
+        {
+            if (XUpdateCheckbox.IsChecked == true)
+            {
+                _updateViewOnSelection = true;
+            } else
+            {
+                _updateViewOnSelection = false;
             }
         }
     }

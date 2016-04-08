@@ -25,7 +25,14 @@
 
         <StackPanel Orientation="Horizontal" 
                     HorizontalAlignment="Left" Background="#50000000" VerticalAlignment="Top">
-            
+
+            <CheckBox  x:Name="XUpdateCheckbox"
+                       Margin="5"
+                       Foreground="White" 
+                       Content="Update"
+                       IsChecked="True"
+                       Background="Transparent"
+                       Click="XUpdateCheckbox_Click"/>
             <CheckBox  x:Name="XStickyCheckbox"
                        Margin="5" 
                        Foreground="White" Content="Lock to..."
